@@ -91,6 +91,7 @@ const { isOverDropZone } = useDropZone(dropZoneRef, {
                     album.NoOfDiscs += 1;
                     disc = { no: musicObj.disc.no || 1, musics: [] };
                     album.disc.push(disc);
+                    album.disc.sort((a, b) => a.no - b.no);
                 }
                 disc.musics.push(musicObj);
                 album.NoOfTracks += 1;
@@ -100,7 +101,7 @@ const { isOverDropZone } = useDropZone(dropZoneRef, {
                     name: musicObj.album,
                     albumArtist: musicObj.albumArtist,
                     disc: [{
-                        no: 1,
+                        no: musicObj.disc.no || 1,
                         musics: [musicObj]
                     }],
                     NoOfTracks: 1,

@@ -43,6 +43,7 @@ function trackRemover(albumHash: string, trackHash: string) {
             props.albums.splice(albumIndex, 1);
         }
     }
+    console.log(JSON.parse(JSON.stringify(props.albums)));
 }
 </script>
 
@@ -103,7 +104,7 @@ function trackRemover(albumHash: string, trackHash: string) {
                                 </div>
                                 <div class="w-20 text-center">
                                     <span class="text-sm text-gray-400">{{ getSecondToMinuteString(track.duration)
-                                    }}</span>
+                                        }}</span>
 
                                 </div>
                                 <div class="w-20 flex text-center justify-end gap-1 ">
