@@ -21,6 +21,7 @@ export interface music {
         format: string;
         data: Uint8Array;
     }[]
+    isInstrumental?: boolean;
 }
 
 export interface Disc {

@@ -96,7 +96,9 @@ function trackRemover(albumHash: string, trackHash: string) {
                                     <span class="text-sm">{{ track.track.no }}</span>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <h3 class="font-medium text-sm truncate">{{ track.title }}</h3>
+                                    <h3 class="font-medium text-sm truncate"
+                                        :class="{ 'dark:text-indigo-600 text-indigo-950': track.isInstrumental }">{{
+                                            track.title }}</h3>
                                     <span v-for="(artist, index) in track.artists"
                                         class="text-xs text-gray-400 truncate">
                                         {{ artist }}<span v-if="!(index === track.artists.length - 1)">, </span>
@@ -105,7 +107,6 @@ function trackRemover(albumHash: string, trackHash: string) {
                                 <div class="w-20 text-center">
                                     <span class="text-sm text-gray-400">{{ getSecondToMinuteString(track.duration)
                                         }}</span>
-
                                 </div>
                                 <div class="w-20 flex text-center justify-end gap-1 ">
                                     <Button variant="ghost" class="h-8 w-8 p-0">

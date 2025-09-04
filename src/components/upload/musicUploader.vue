@@ -32,6 +32,15 @@ async function hashFileStream(file: File) {
     return hasher.digest('hex');
 }
 
+function checkIfInstrumental(title: string, filename: string): boolean {
+    const instrumentalIndicators = [
+        "instrumental", "karaoke", "Off Vocal"
+    ];
+    const lowerTitle = title.toLowerCase();
+    const lowerFilename = filename.toLowerCase();
+    return instrumentalIndicators.some(indicator => lowerTitle.includes(indicator) || lowerFilename.includes(indicator));
+}
+
 function covertToMusicObject(metadata: IAudioMetadata, hash: string, filename: string): music {
     return {
         hash: hash,
@@ -39,7 +48,7 @@ function covertToMusicObject(metadata: IAudioMetadata, hash: string, filename: s
         album: metadata.common.album || "Unknown Album",
         albumArtist: metadata.common.albumartist || "Unknown Album Artist",
         artists: metadata.common.artists || ["Unknown Artist"],
-        title: metadata.common.title || "Unknown Title",
+        title: metadata.common.title || filename,
         year: metadata.common.year || 0,
         duration: metadata.format.duration || 0,
         bitsPerSample: metadata.format.bitsPerSample || 0,
@@ -53,7 +62,7 @@ function covertToMusicObject(metadata: IAudioMetadata, hash: string, filename: s
             of: metadata.common.disk.of || 0,
         },
         picture: metadata.common.picture || [],
-
+        isInstrumental: checkIfInstrumental(metadata.common.title || "", filename),
     };
 }
 
