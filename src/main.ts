@@ -1,9 +1,10 @@
 import { createApp } from 'vue'
 import './style.css'
 import App from './App.vue'
-import { createMemoryHistory, createRouter } from 'vue-router'
+import { createMemoryHistory, createRouter, createWebHistory } from 'vue-router'
 import Layout from './components/layout/layout.vue'
 import Main from './pages/main.vue'
+import Upload from './pages/music/upload.vue'
 
 const routes = [
     {
@@ -12,13 +13,17 @@ const routes = [
             {
                 path: '',
                 component: Main
+            },
+            {
+                path: 'music/upload',
+                component: Upload
             }
         ]
     }
 ]
 
 const router = createRouter({
-    history: createMemoryHistory(),
+    history: createWebHistory(),
     routes,
 })
 
