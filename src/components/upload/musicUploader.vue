@@ -4,6 +4,10 @@ import { parseBlob, type IAudioMetadata } from "music-metadata";
 import { ref } from "vue";
 import { createBLAKE3 } from "hash-wasm";
 import type { Album, music } from "@/types/music";
+import { Upload } from "lucide-vue-next";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 
 const props = defineProps({
     albums: {
@@ -77,51 +81,57 @@ async function getAlbumHash(text: string) {
     return hasher.digest('hex');
 }
 
+async function handleFiles(files: File[]) {
+    if (blockUpload.value) return;
+    blockUpload.value = true;
+    for (const file of files ?? []) {
+        const metadata = await getMetadata(file);
+        const hash = await hashFileStream(file);
+        const musicObj = covertToMusicObject(metadata, hash, file.name);
+
+        const duplicate = props.albums.some(album =>
+            album.disc.some(disc => disc.musics.some(m => m.hash === hash))
+        );
+        if (duplicate) {
+            console.log(`Duplicate file detected: ${file.name}, skipping...`);
+            continue;
+        }
+        const album = props.albums.find((a) => a.name === musicObj.album && a.albumArtist === musicObj.albumArtist);
+        if (album) {
+            let disc = album.disc.find(d => d.no === musicObj.disc.no);
+            if (!disc) {
+                album.NoOfDiscs += 1;
+                disc = { no: musicObj.disc.no || 1, musics: [] };
+                album.disc.push(disc);
+                album.disc.sort((a, b) => a.no - b.no);
+            }
+            disc.musics.push(musicObj);
+            album.NoOfTracks += 1;
+        } else {
+            props.albums.push({
+                hash: await getAlbumHash(musicObj.album + musicObj.albumArtist),
+                name: musicObj.album,
+                albumArtist: musicObj.albumArtist,
+                disc: [{
+                    no: musicObj.disc.no || 1,
+                    musics: [musicObj]
+                }],
+                NoOfTracks: 1,
+                NoOfDiscs: musicObj.disc.of || 1,
+            });
+        }
+    }
+    for (const album of props.albums) {
+        album.disc.forEach(disc => disc.musics.sort(albumMusicSorter));
+    }
+    blockUpload.value = false;
+}
+
+
 const { isOverDropZone } = useDropZone(dropZoneRef, {
     onDrop: async (files) => {
-        if (blockUpload.value) return;
-        blockUpload.value = true;
-        for (const file of files ?? []) {
-            const metadata = await getMetadata(file);
-            const hash = await hashFileStream(file);
-            const musicObj = covertToMusicObject(metadata, hash, file.name);
-
-            const duplicate = props.albums.some(album =>
-                album.disc.some(disc => disc.musics.some(m => m.hash === hash))
-            );
-            if (duplicate) {
-                console.log(`Duplicate file detected: ${file.name}, skipping...`);
-                continue;
-            }
-            const album = props.albums.find((a) => a.name === musicObj.album && a.albumArtist === musicObj.albumArtist);
-            if (album) {
-                let disc = album.disc.find(d => d.no === musicObj.disc.no);
-                if (!disc) {
-                    album.NoOfDiscs += 1;
-                    disc = { no: musicObj.disc.no || 1, musics: [] };
-                    album.disc.push(disc);
-                    album.disc.sort((a, b) => a.no - b.no);
-                }
-                disc.musics.push(musicObj);
-                album.NoOfTracks += 1;
-            } else {
-                props.albums.push({
-                    hash: await getAlbumHash(musicObj.album + musicObj.albumArtist),
-                    name: musicObj.album,
-                    albumArtist: musicObj.albumArtist,
-                    disc: [{
-                        no: musicObj.disc.no || 1,
-                        musics: [musicObj]
-                    }],
-                    NoOfTracks: 1,
-                    NoOfDiscs: musicObj.disc.of || 1,
-                });
-            }
-        }
-        for (const album of props.albums) {
-            album.disc.forEach(disc => disc.musics.sort(albumMusicSorter));
-        }
-        blockUpload.value = false;
+        if (!files) return;
+        await handleFiles(files as File[]);
     },
     multiple: true,
 });
@@ -133,9 +143,20 @@ const { isOverDropZone } = useDropZone(dropZoneRef, {
             <div ref="dropZoneRef"
                 class="border-2 border-dashed rounded-lg p-12 text-center transition-all duration-200 hover:bg-card/50"
                 :class="blockUpload ? 'opacity-50 pointer-events-none' : ''">
-                <div>
-                    isOverDropZone: {{ isOverDropZone }}
+                <div class="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Upload class="h-8 w-8 text-gray-400" />
                 </div>
+                <h3 class="text-xl font-semibold mb-2">Choose music files</h3>
+                <p class="text-gray-400 mb-6">Drag and drop or browse to upload</p>
+                <Input type="file" multiple accept="audio/*" class="hidden" id="file-upload" @change="(e: Event) => {
+                    const files = (e.target as HTMLInputElement).files;
+                    if (files) handleFiles(Array.from(files));
+                }" />
+                <Button asChild class="font-semibold">
+                    <Label htmlFor="file-upload" class="cursor-pointer">
+                        Browse Files
+                    </Label>
+                </Button>
             </div>
         </div>
     </div>

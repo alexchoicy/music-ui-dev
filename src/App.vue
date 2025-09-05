@@ -2,7 +2,7 @@
 import { useColorMode } from '@vueuse/core';
 
 const mode = useColorMode()
-mode.value = 'light' // or 'light' or 'system'
+mode.value = 'dark' // or 'light' or 'system'
 </script>
 
 <template>

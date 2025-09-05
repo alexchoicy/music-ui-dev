@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AlbumList from '@/components/upload/albumList.vue';
 import MusicUploader from '@/components/upload/musicUploader.vue';
+import UploadStatus from '@/components/upload/uploadStatus.vue';
 import type { Album } from '@/types/music';
 import { ref } from 'vue';
 
@@ -16,7 +17,7 @@ const albums = ref<Album[]>([]);
                 <AlbumList :albums="albums" class="mt-6" />
             </div>
             <div>
-                TEST
+                <UploadStatus />
             </div>
         </div>
     </div>
