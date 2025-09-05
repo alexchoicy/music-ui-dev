@@ -1,9 +1,19 @@
 <script setup lang="ts">
 import type { Album } from '@/types/music';
-import { Disc3 } from 'lucide-vue-next';
+import { Disc3, X } from 'lucide-vue-next';
 import { uint8ArrayToBase64 } from 'uint8array-extras';
 import { Button } from '@/components/ui/button';
 import Badge from '@/components/ui/badge/Badge.vue';
+import { ref } from 'vue';
+import type { music } from '@/types/music';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { FormControl, FormDescription, FormField } from "@/components/ui/form"
+import { toTypedSchema } from '@vee-validate/zod'
+import * as z from 'zod'
+import { useFieldArray, useForm } from 'vee-validate';
+import FormItem from '@/components/ui/form/FormItem.vue';
+import FormLabel from '@/components/ui/form/FormLabel.vue';
+import { Input } from '@/components/ui/input'
 
 const props = defineProps({
     albums: {
@@ -12,11 +22,32 @@ const props = defineProps({
     },
 });
 
+const currentTrack = ref<music | null>(null)
+const isTrackEditDialogOpen = ref(false)
+
+
 function getSecondToMinuteString(seconds: number) {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
+
+function getCurrentTrackInfo(albumHash: string, trackHash: string) {
+    const album = props.albums.find(a => a.hash === albumHash);
+    if (!album) return null;
+
+    for (const disc of album.disc) {
+        const track = disc.musics.find(t => t.hash === trackHash);
+        if (track) {
+            return {
+                track
+            };
+        }
+    }
+
+    return null;
+}
+
 
 function trackRemover(albumHash: string, trackHash: string) {
     const album = props.albums.find(a => a.hash === albumHash);
@@ -46,6 +77,55 @@ function trackRemover(albumHash: string, trackHash: string) {
     }
     console.log(JSON.parse(JSON.stringify(props.albums)));
 }
+
+function openTrackDialog(albumHash: string, trackHash: string) {
+    const trackInfo = getCurrentTrackInfo(albumHash, trackHash);
+    if (trackInfo) {
+        currentTrack.value = trackInfo.track;
+        isTrackEditDialogOpen.value = true;
+        trackForm.resetForm({
+            values: {
+                title: currentTrack.value?.title,
+                albumArtist: currentTrack.value?.albumArtist === "Unknown Album Artist" ? "" : currentTrack.value?.albumArtist,
+                artists: currentTrack.value?.artists.length === 1 && currentTrack.value?.artists[0] === "Unknown Artist" ? [""] : currentTrack.value?.artists,
+            }
+        })
+    }
+}
+const trackEditFormSchema = toTypedSchema(z.object({
+    title: z.string().optional(),
+    albumArtist: z.string().optional(),
+    artists: z.array(z.string()).min(1, "At least one artist is required"),
+    // album: z.string().optional(),
+    // year: z.number().min(1900).max(new Date().getFullYear()).optional(),
+    // trackNo: z.number().min(1).optional(),
+    // discNo: z.number().min(1).optional(),
+    // genre: z.string().optional(),
+    // isInstrumental: z.boolean().optional(),
+}));
+
+const trackForm = useForm({
+    validationSchema: trackEditFormSchema,
+    initialValues: {
+        title: '',
+        albumArtist: '',
+        artists: [''],
+    },
+})
+
+const { fields: artistsFields, remove: artistsFieldsRemove } = useFieldArray<string>('artists')
+
+
+const onTrackFormSubmit = trackForm.handleSubmit((values) => {
+    console.log(values);
+})
+
+function onRemoveArtist(idx: number) {
+    if (artistsFields.value.length > 1) artistsFieldsRemove(idx)
+    console.log(JSON.parse(JSON.stringify(artistsFields.value)));
+    console.log(JSON.parse(JSON.stringify(currentTrack.value)));
+}
+
 </script>
 
 <template>
@@ -112,10 +192,11 @@ function trackRemover(albumHash: string, trackHash: string) {
                                 </div>
                                 <div class="w-20 text-center">
                                     <span class="text-sm text-gray-400">{{ getSecondToMinuteString(track.duration)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div class="w-20 flex text-center justify-end gap-1 ">
-                                    <Button variant="ghost" class="h-8 w-8 p-0">
+                                    <Button variant="ghost" class="h-8 w-8 p-0"
+                                        @click="openTrackDialog(album.hash, track.hash)">
                                         <span class="text-xs">Edit</span>
                                     </Button>
                                     <Button variant="ghost" class="h-8 w-8 p-0"
@@ -128,7 +209,50 @@ function trackRemover(albumHash: string, trackHash: string) {
                     </div>
                 </div>
             </div>
-
         </div>
+        <Dialog :open="isTrackEditDialogOpen" @update:open="isTrackEditDialogOpen = $event">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Edit Track metadata</DialogTitle>
+                    <DialogDescription>
+                        the metadata editing will not effect the original file. (yet) i think tehe.
+                    </DialogDescription>
+                </DialogHeader>
+                <form @submit="onTrackFormSubmit" class="space-y-4">
+                    <FormField v-slot="{ componentField }" name="title">
+                        <FormItem>
+                            <FormLabel>Title</FormLabel>
+                            <FormControl>
+                                <Input type="text" v-bind="componentField"></Input>
+                            </FormControl>
+                        </FormItem>
+                    </FormField>
+                    <FormField v-slot="{ componentField }" name="albumArtist">
+                        <FormItem>
+                            <FormLabel>Album Artists</FormLabel>
+                            <FormControl>
+                                <Input type="text" v-bind="componentField" placeholder="Empty if unknown."></Input>
+                            </FormControl>
+                            <FormDescription>
+                                The Main artist for the album. All track should have the same album artist.
+                            </FormDescription>
+                        </FormItem>
+                    </FormField>
+                    <FormField v-for="(artistField, index) in artistsFields" :key="artistField.key"
+                        :name="`artists.${index}`" v-slot="{ componentField }">
+                        <FormItem>
+                            <FormLabel>Artist {{ index + 1 }}</FormLabel>
+                            <FormControl>
+                                <Input type="text" v-bind="componentField"></Input>
+                                <Button v-if="artistsFields.length > 1" type="button" variant="ghost" size="sm"
+                                    class="h-9 w-9 p-0" @click="onRemoveArtist(index)" title="Remove">
+                                    <X class="h-4 w-4" />
+                                </Button>
+                            </FormControl>
+                        </FormItem>
+                    </FormField>
+                </form>
+            </DialogContent>
+        </Dialog>
     </div>
 </template>
