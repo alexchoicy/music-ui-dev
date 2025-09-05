@@ -217,7 +217,7 @@ function onAddArtist() {
                                     <span class="text-sm">{{ track.track.no }}</span>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <h3 class="font-medium text-sm truncate">{{
+                                    <h3 class="font-medium text-sm truncate" :title="track.title">{{
                                         track.title }}
                                         <Badge v-if="track.isInstrumental"
                                             class="dark:border-purple-500/50 dark:text-purple-300 border-purple-700/50 text-purple-500 text-xs px-1 py-0"
@@ -225,14 +225,15 @@ function onAddArtist() {
                                             Instrumental
                                         </Badge>
                                     </h3>
-                                    <span v-for="(artist, index) in track.artists"
-                                        class="text-xs text-gray-400 truncate">
-                                        {{ artist }}<span v-if="!(index === track.artists.size - 1)">, </span>
-                                    </span>
+                                    <div class="text-xs text-gray-400">
+                                        <span v-for="(artist, index) in track.artists" class="">
+                                            {{ artist }}<span v-if="!(index === track.artists.size - 1)">, </span>
+                                        </span>
+                                    </div>
                                 </div>
                                 <div class="w-20 text-center">
                                     <span class="text-sm text-gray-400">{{ getSecondToMinuteString(track.duration)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div class="w-20 flex text-center justify-end gap-1 ">
                                     <Button variant="ghost" class="h-8 w-8 p-0" :disabled="props.blockUpload"
