@@ -3,6 +3,7 @@ export interface music {
     hash: string;
     album: string;
     albumArtist: string;
+    rawArtist: string;
     artists: Set<string>;
     title: string;
     year: number;
@@ -35,5 +36,15 @@ export interface Album {
     albumArtist: string;
     NoOfDiscs: number;
     NoOfTracks: number;
+    albumType: AlbumsAlbumType;
     disc: Disc[];
 }
+
+export type AlbumsAlbumType =
+    | 'Album'
+    | 'Single'
+    | 'Compilation'
+    | 'Soundtrack'
+    | 'Live'
+    | 'Remix'
+    | 'Other';

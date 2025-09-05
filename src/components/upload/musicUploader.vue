@@ -52,12 +52,22 @@ function checkIfInstrumental(title: string, filename: string): boolean {
     return instrumentalIndicators.some(indicator => lowerTitle.includes(indicator) || lowerFilename.includes(indicator));
 }
 
+function checkIfSoundtrack(title: string, filename: string): boolean {
+    const soundtrackIndicators = [
+        "soundtrack", "ost", "サウンドトラック", "オリジナル"
+    ];
+    const lowerTitle = title.toLowerCase();
+    const lowerFilename = filename.toLowerCase();
+    return soundtrackIndicators.some(indicator => lowerTitle.includes(indicator) || lowerFilename.includes(indicator));
+}
+
 function covertToMusicObject(metadata: IAudioMetadata, hash: string, filename: string): music {
     return {
         hash: hash,
         filename: filename,
         album: metadata.common.album || "Unknown Album",
         albumArtist: metadata.common.albumartist || "Unknown Album Artist",
+        rawArtist: metadata.common.artist || "Unknown Artist",
         artists: new Set(metadata.common.artists ?? ["Unknown Artist"]),
         title: metadata.common.title || filename,
         year: metadata.common.year || 0,
@@ -85,10 +95,16 @@ function albumMusicSorter(a: music, b: music) {
 async function handleFiles(files: File[]) {
     if (props.blockUpload) return;
     emit('update:blockUpload', true);
-    for (const file of files ?? []) {
-        const metadata = await getMetadata(file);
+    if (files.length === 0) {
+        emit('update:blockUpload', false);
+        return;
+    }
+    for (const file of files) {
+        if (!file.type.startsWith('audio/')) {
+            console.log(`Skipping non-audio file: ${file.name}`);
+            continue;
+        }
         const hash = await hashFileStream(file);
-        const musicObj = covertToMusicObject(metadata, hash, file.name);
 
         const duplicate = props.albums.some(album =>
             album.disc.some(disc => disc.musics.some(m => m.hash === hash))
@@ -97,6 +113,10 @@ async function handleFiles(files: File[]) {
             console.log(`Duplicate file detected: ${file.name}, skipping...`);
             continue;
         }
+
+        const metadata = await getMetadata(file);
+        const musicObj = covertToMusicObject(metadata, hash, file.name);
+
         const album = props.albums.find((a) => a.name === musicObj.album && a.albumArtist === musicObj.albumArtist);
         if (album) {
             const tempDiscNo = musicObj.disc.no === 0 ? 1 : musicObj.disc.no;
@@ -110,7 +130,9 @@ async function handleFiles(files: File[]) {
             musicObj.disc.no = disc.no;
             musicObj.track.no = getNextFreeTrackNo(disc, musicObj.track.no);
             disc.musics.push(musicObj);
-            album.NoOfTracks += 1;
+            if (!musicObj.isInstrumental) {
+                album.NoOfTracks += 1;
+            }
         } else {
             musicObj.disc.no = musicObj.disc.no === 0 ? 1 : musicObj.disc.no;
             musicObj.track.no = musicObj.track.no === 0 ? 1 : musicObj.track.no;
@@ -122,18 +144,50 @@ async function handleFiles(files: File[]) {
                     no: musicObj.disc.no === 0 ? 1 : musicObj.disc.no,
                     musics: [musicObj]
                 }],
-                NoOfTracks: 1,
+                NoOfTracks: musicObj.isInstrumental ? 0 : 1,
                 NoOfDiscs: musicObj.disc.of || 1,
+                albumType: "Album",
             });
         }
     }
     for (const album of props.albums) {
+        if (album.albumArtist === "Unknown Album Artist") {
+            const artistCount: Record<string, number> = {};
+            album.disc.forEach(disc => {
+                disc.musics.forEach(music => {
+                    music.artists.forEach(artist => {
+                        artistCount[artist] = (artistCount[artist] || 0) + 1;
+                    });
+                });
+            });
+            const mostFrequentArtist = Object.entries(artistCount)
+                .sort((a, b) => b[1] - a[1])[0]?.[0];
+            if (mostFrequentArtist) {
+                album.albumArtist = mostFrequentArtist;
+                album.disc.forEach(disc => {
+                    disc.musics.forEach(music => {
+                        music.albumArtist = album.albumArtist;
+                    });
+                });
+            }
+        }
+        if (checkIfSoundtrack(album.name, "")) {
+            album.albumType = "Soundtrack";
+        } else if (album.NoOfTracks < 2) {
+            album.albumType = "Single";
+        }
+
         album.disc.forEach(disc => disc.musics.sort(albumMusicSorter));
     }
     emit('update:blockUpload', false);
 }
 
-const { isOverDropZone } = useDropZone(dropZoneRef, {
+function isAudio(types: readonly string[]) {
+    return types.some(type => type.startsWith('audio/'));
+}
+
+useDropZone(dropZoneRef, {
+    dataTypes: isAudio,
     onDrop: async (files) => {
         if (!files) return;
         await handleFiles(files as File[]);

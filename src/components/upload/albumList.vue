@@ -182,7 +182,13 @@ function onAddArtist() {
                         </div>
                     </div>
                     <div class=" flex-1">
-                        <h2 class="text-lg font-semibold">{{ album.name }}</h2>
+                        <h2 class="text-lg font-semibold">{{ album.name }}
+                            <Badge
+                                class="text-center dark:border-purple-500/50 dark:text-purple-300 border-purple-700/50 text-purple-500 text-xs px-1 py-0"
+                                variant="secondary">
+                                {{ album.albumType }}
+                            </Badge>
+                        </h2>
                         <p class="text-gray-400">{{ album.albumArtist }}</p>
                         <div class="flex items-center gap-4 mt-1">
                             <p class="text-sm text-gray-500">{{ album.NoOfTracks }} tracks</p>
