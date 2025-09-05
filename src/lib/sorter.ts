@@ -16,7 +16,15 @@ export function getNextFreeTrackNo(dics: Disc, preferred: number) {
     if (preferred <= 0) {
         return dics.musics.length + 1;
     }
-    // trust the user and should be no conflict HAHA
+    const trackNos = new Set(dics.musics.map(m => m.track.no));
+    if (trackNos.has(preferred)) {
+        let nextNo = 1;
+        while (trackNos.has(nextNo)) {
+            nextNo++;
+        }
+        return nextNo;
+    }
+
     return preferred;
 }
 
@@ -67,9 +75,9 @@ export async function albumsReSorter(albums: Album[]) {
     const sortedAlbums = Array.from(albumMap.values());
 
     for (const sortedAlbum of sortedAlbums) {
+        sortedAlbum.disc.sort((a, b) => a.no - b.no);
         sortedAlbum.disc.forEach(disc => disc.musics.sort(albumMusicSorter));
     }
-    console.log(sortedAlbums)
     return sortedAlbums;
 }
 
