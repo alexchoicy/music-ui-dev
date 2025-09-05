@@ -15,10 +15,16 @@ const props = defineProps({
         type: Array as () => Album[],
         required: true,
     },
+    blockUpload: {
+        type: Boolean,
+        default: false,
+        required: true,
+    },
 });
 
+const emit = defineEmits(['update:blockUpload']);
+
 const dropZoneRef = ref<HTMLDivElement>();
-const blockUpload = ref(false);
 
 async function getMetadata(file: File) {
     return await parseBlob(file);
@@ -77,8 +83,8 @@ function albumMusicSorter(a: music, b: music) {
 }
 
 async function handleFiles(files: File[]) {
-    if (blockUpload.value) return;
-    blockUpload.value = true;
+    if (props.blockUpload) return;
+    emit('update:blockUpload', true);
     for (const file of files ?? []) {
         const metadata = await getMetadata(file);
         const hash = await hashFileStream(file);
@@ -124,7 +130,7 @@ async function handleFiles(files: File[]) {
     for (const album of props.albums) {
         album.disc.forEach(disc => disc.musics.sort(albumMusicSorter));
     }
-    blockUpload.value = false;
+    emit('update:blockUpload', false);
 }
 
 const { isOverDropZone } = useDropZone(dropZoneRef, {

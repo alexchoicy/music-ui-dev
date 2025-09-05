@@ -22,6 +22,11 @@ const props = defineProps({
         type: Array as () => Album[],
         required: true,
     },
+    blockUpload: {
+        type: Boolean,
+        default: false,
+        required: true,
+    },
 });
 const emit = defineEmits(['update:albums']);
 
@@ -150,6 +155,7 @@ const onTrackFormSubmit = trackForm.handleSubmit(async (values) => {
     emit('update:albums', newSortedAlbums);
     currentTrack.value = null;
     isTrackEditDialogOpen.value = false;
+    trackForm.resetForm();
 })
 
 function onRemoveArtist(idx: number) {
@@ -226,16 +232,16 @@ function onAddArtist() {
                                 </div>
                                 <div class="w-20 text-center">
                                     <span class="text-sm text-gray-400">{{ getSecondToMinuteString(track.duration)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div class="w-20 flex text-center justify-end gap-1 ">
-                                    <Button variant="ghost" class="h-8 w-8 p-0"
+                                    <Button variant="ghost" class="h-8 w-8 p-0" :disabled="props.blockUpload"
                                         @click="openTrackDialog(album.hash, track.hash)">
                                         <span class="text-xs">Edit</span>
                                     </Button>
-                                    <Button variant="ghost" class="h-8 w-8 p-0"
-                                        @click="trackRemover(album.hash, track.hash)">
-                                        <span class="text-xs">Del</span>
+                                    <Button variant="ghost" class="h-9 w-9 p-0 hover:bg-red-900/20 hover:text-red-400"
+                                        :disabled="props.blockUpload" @click="trackRemover(album.hash, track.hash)">
+                                        <X class="h-4 w-4" />
                                     </Button>
                                 </div>
                             </div>
