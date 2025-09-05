@@ -3,6 +3,7 @@ import type { Album } from '@/types/music';
 import { Disc3 } from 'lucide-vue-next';
 import { uint8ArrayToBase64 } from 'uint8array-extras';
 import { Button } from '@/components/ui/button';
+import Badge from '@/components/ui/badge/Badge.vue';
 
 const props = defineProps({
     albums: {
@@ -96,9 +97,14 @@ function trackRemover(albumHash: string, trackHash: string) {
                                     <span class="text-sm">{{ track.track.no }}</span>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <h3 class="font-medium text-sm truncate"
-                                        :class="{ 'dark:text-indigo-600 text-indigo-950': track.isInstrumental }">{{
-                                            track.title }}</h3>
+                                    <h3 class="font-medium text-sm truncate">{{
+                                        track.title }}
+                                        <Badge v-if="track.isInstrumental"
+                                            class="dark:border-purple-500/50 dark:text-purple-300 border-purple-700/50 text-purple-500 text-xs px-1 py-0"
+                                            variant="secondary">
+                                            Instrumental
+                                        </Badge>
+                                    </h3>
                                     <span v-for="(artist, index) in track.artists"
                                         class="text-xs text-gray-400 truncate">
                                         {{ artist }}<span v-if="!(index === track.artists.length - 1)">, </span>
