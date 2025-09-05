@@ -3,7 +3,7 @@ export interface music {
     hash: string;
     album: string;
     albumArtist: string;
-    artists: string[];
+    artists: Set<string>;
     title: string;
     year: number;
     duration: number; // in seconds

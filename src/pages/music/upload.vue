@@ -14,7 +14,7 @@ const albums = ref<Album[]>([]);
             <div class="xl:col-span-3 space-y-6">
                 <MusicUploader :albums="albums" />
 
-                <AlbumList :albums="albums" class="mt-6" />
+                <AlbumList :albums="albums" class="mt-6" @update:albums="albums = $event" />
             </div>
             <div>
                 <UploadStatus />

@@ -8,6 +8,7 @@ import { Upload } from "lucide-vue-next";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { getAlbumHash, getNextFreeTrackNo } from "@/lib/sorter";
 
 const props = defineProps({
     albums: {
@@ -51,7 +52,7 @@ function covertToMusicObject(metadata: IAudioMetadata, hash: string, filename: s
         filename: filename,
         album: metadata.common.album || "Unknown Album",
         albumArtist: metadata.common.albumartist || "Unknown Album Artist",
-        artists: metadata.common.artists || ["Unknown Artist"],
+        artists: new Set(metadata.common.artists ?? ["Unknown Artist"]),
         title: metadata.common.title || filename,
         year: metadata.common.year || 0,
         duration: metadata.format.duration || 0,
@@ -75,12 +76,6 @@ function albumMusicSorter(a: music, b: music) {
     return (a.disc.no - b.disc.no) || (a.track.no - b.track.no);
 }
 
-async function getAlbumHash(text: string) {
-    const hasher = await createBLAKE3();
-    hasher.update(text);
-    return hasher.digest('hex');
-}
-
 async function handleFiles(files: File[]) {
     if (blockUpload.value) return;
     blockUpload.value = true;
@@ -98,22 +93,27 @@ async function handleFiles(files: File[]) {
         }
         const album = props.albums.find((a) => a.name === musicObj.album && a.albumArtist === musicObj.albumArtist);
         if (album) {
-            let disc = album.disc.find(d => d.no === musicObj.disc.no);
+            const tempDiscNo = musicObj.disc.no === 0 ? 1 : musicObj.disc.no;
+            let disc = album.disc.find(d => d.no === tempDiscNo);
             if (!disc) {
                 album.NoOfDiscs += 1;
-                disc = { no: musicObj.disc.no || 1, musics: [] };
+                disc = { no: tempDiscNo, musics: [] };
                 album.disc.push(disc);
                 album.disc.sort((a, b) => a.no - b.no);
             }
+            musicObj.disc.no = disc.no;
+            musicObj.track.no = getNextFreeTrackNo(disc, musicObj.track.no);
             disc.musics.push(musicObj);
             album.NoOfTracks += 1;
         } else {
+            musicObj.disc.no = musicObj.disc.no === 0 ? 1 : musicObj.disc.no;
+            musicObj.track.no = musicObj.track.no === 0 ? 1 : musicObj.track.no;
             props.albums.push({
                 hash: await getAlbumHash(musicObj.album + musicObj.albumArtist),
                 name: musicObj.album,
                 albumArtist: musicObj.albumArtist,
                 disc: [{
-                    no: musicObj.disc.no || 1,
+                    no: musicObj.disc.no === 0 ? 1 : musicObj.disc.no,
                     musics: [musicObj]
                 }],
                 NoOfTracks: 1,
@@ -126,7 +126,6 @@ async function handleFiles(files: File[]) {
     }
     blockUpload.value = false;
 }
-
 
 const { isOverDropZone } = useDropZone(dropZoneRef, {
     onDrop: async (files) => {
