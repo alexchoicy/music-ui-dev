@@ -4,8 +4,6 @@ import {
     SidebarContent,
     SidebarGroup,
     SidebarMenu,
-    SidebarMenuItem,
-    SidebarTrigger,
     SidebarInset,
     SidebarProvider
 } from "@/components/ui/sidebar"

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { checkIfSoundtrack, getAlbumHash, getNextFreeTrackNo } from "@/lib/sorter";
+import { uint8ArrayToBase64 } from 'uint8array-extras';
 
 const props = defineProps({
     albums: {
@@ -54,13 +55,19 @@ function checkIfInstrumental(title: string, filename: string): boolean {
 
 
 function covertToMusicObject(metadata: IAudioMetadata, hash: string, filename: string): music {
+    const artists = Array.from(new Set(metadata.common.artists ?? ["Unknown Artist"]));
+    const picture = metadata.common.picture?.map(pic => ({
+        format: pic.format,
+        data: uint8ArrayToBase64(pic.data),
+    })) || [];
+
     return {
         hash: hash,
         filename: filename,
         album: metadata.common.album || "Unknown Album",
         albumArtist: metadata.common.albumartist || "Unknown Album Artist",
         rawArtist: metadata.common.artist || "Unknown Artist",
-        artists: new Set(metadata.common.artists ?? ["Unknown Artist"]),
+        artists,
         title: metadata.common.title || filename,
         year: metadata.common.year || 0,
         duration: metadata.format.duration || 0,
@@ -74,7 +81,7 @@ function covertToMusicObject(metadata: IAudioMetadata, hash: string, filename: s
             no: metadata.common.disk.no || 0,
             of: metadata.common.disk.of || 0,
         },
-        picture: metadata.common.picture || [],
+        picture: picture,
         isInstrumental: checkIfInstrumental(metadata.common.title || "", filename),
     };
 }

@@ -6,7 +6,7 @@ export interface music {
     album: string;
     albumArtist: string;
     rawArtist: string;
-    artists: Set<string>;
+    artists: string[];
     title: string;
     year: number;
     duration: number; // in seconds
@@ -22,7 +22,7 @@ export interface music {
     }
     picture?: {
         format: string;
-        data: Uint8Array;
+        data: string;
     }[]
     isInstrumental?: boolean;
 }

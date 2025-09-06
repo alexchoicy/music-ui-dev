@@ -4,7 +4,6 @@ import { AlbumsAlbumTypeEnum, type Album, type AlbumsAlbumType } from "@/types/m
 import { FormField, FormLabel, FormItem, FormControl, FormDescription } from "@/components/ui/form";
 import { nextTick, ref, watch } from "vue";
 import { useDropZone } from "@vueuse/core";
-import { uint8ArrayToBase64 } from 'uint8array-extras';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,10 +23,10 @@ const props = defineProps({
     currentAlbum: {
         type: Object as () => Album,
         required: true,
-    },
+    }
 })
 const newImage = ref<{
-    data: Uint8Array | undefined,
+    data: string | undefined,
     format: 'image/jpeg' | 'image/png' | undefined,
 }>({ data: undefined, format: undefined });
 const dropZoneRef = ref<HTMLDivElement>();
@@ -36,7 +35,7 @@ const emit = defineEmits(['update:isOpen', 'update:currentAlbum']);
 
 const albumEditSchema = toTypedSchema(z.object({
     picture: z.object({
-        data: z.instanceof(Uint8Array).optional(),
+        data: z.string().optional(),
         format: z.enum(['image/jpeg', 'image/png']).optional(),
     }).optional(),
     name: z.string().optional(),
@@ -54,18 +53,23 @@ const albumEditForm = useForm({
     },
 });
 
-async function fileToUint8Array(file: File) {
-    const buffer = await file.arrayBuffer();
-    const uint8Array = new Uint8Array(buffer);
-    return uint8Array;
+function getBase64FromFile(file: File): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(",")[1]);
+        };
+        reader.onerror = (err) => reject(err);
+        reader.readAsDataURL(file);
+    });
 }
 
 useDropZone(dropZoneRef, {
     onDrop: async (file) => {
         if (!file) return;
-        const uint8Array = await fileToUint8Array(file[0]);
         newImage.value = {
-            data: uint8Array,
+            data: await getBase64FromFile(file[0]),
             format: file[0].type as 'image/jpeg' | 'image/png',
         };
     },
@@ -111,7 +115,7 @@ const onAlbumEditSubmit = albumEditForm.handleSubmit(async (values) => {
         for (const track of disc.musics) {
             if (updateImage) {
                 track.picture = [{
-                    data: newImage.value.data as Uint8Array,
+                    data: newImage.value.data as string,
                     format: newImage.value.format as 'image/jpeg' | 'image/png',
                 }]
             }
@@ -151,7 +155,7 @@ const albumTypeOptions: { value: AlbumsAlbumType; label: string }[] =
                             <div class="flex items-center gap-4">
                                 <div class="relative w-24 h-24 rounded-lg border-2 border-dashed" ref="dropZoneRef">
                                     <div v-if="newImage.data && newImage.format" class="w-full h-full">
-                                        <img :src="`data:${newImage.format};base64,${uint8ArrayToBase64(newImage.data)}`"
+                                        <img :src="`data:${newImage.format};base64,${newImage.data}`"
                                             class="w-full h-full object-cover rounded-lg" />
                                         <button @click="removeNewImage"
                                             class="absolute cursor-pointer -top-2 -right-2 w-6 h-6 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-colors">
@@ -159,7 +163,7 @@ const albumTypeOptions: { value: AlbumsAlbumType; label: string }[] =
                                         </button>
                                     </div>
                                     <img v-else-if="currentAlbum?.disc[0].musics[0] && currentAlbum?.disc[0].musics?.[0]?.picture?.[0]"
-                                        v-bind:src="`data:${currentAlbum?.disc[0].musics?.[0]?.picture?.[0]?.format};base64,${uint8ArrayToBase64(currentAlbum?.disc[0].musics?.[0]?.picture?.[0]?.data)}`"
+                                        v-bind:src="`data:${currentAlbum?.disc[0].musics?.[0]?.picture?.[0]?.format};base64,${currentAlbum?.disc[0].musics?.[0]?.picture?.[0]?.data}`"
                                         class="w-full h-full object-cover rounded-lg" />
                                     <div v-else
                                         class="w-full h-full bg-gray-700 flex items-center justify-center rounded-lg">
@@ -173,9 +177,8 @@ const albumTypeOptions: { value: AlbumsAlbumType; label: string }[] =
                                                 const target = e.target as HTMLInputElement;
                                                 if (target.files && target.files.length > 0) {
                                                     const file = target.files[0];
-                                                    const uint8Array = await fileToUint8Array(file);
                                                     newImage = {
-                                                        data: uint8Array,
+                                                        data: await getBase64FromFile(file),
                                                         format: file.type as 'image/jpeg' | 'image/png',
                                                     };
                                                 }

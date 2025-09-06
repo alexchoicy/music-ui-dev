@@ -7,6 +7,22 @@ import { ref } from 'vue';
 
 const albums = ref<Album[]>([]);
 const blockUpload = ref(false);
+
+function uploadAlbums() {
+    // fix the set is not serialize to json 
+    const albumsForLog = albums.value.map(album => ({
+        ...album,
+        disc: album.disc.map(disc => ({
+            ...disc,
+            musics: disc.musics.map(music => ({
+                ...music,
+                artists: Array.from(music.artists),
+            })),
+        })),
+    }));
+
+    console.log(JSON.parse(JSON.stringify(albumsForLog)));
+}
 </script>
 
 <template>
@@ -18,7 +34,7 @@ const blockUpload = ref(false);
                 <AlbumList :albums="albums" class="mt-6" @update:albums="albums = $event" :blockUpload="blockUpload" />
             </div>
             <div>
-                <UploadStatus />
+                <UploadStatus :uploadAlbums="uploadAlbums" :blockUpload="blockUpload" />
             </div>
         </div>
     </div>

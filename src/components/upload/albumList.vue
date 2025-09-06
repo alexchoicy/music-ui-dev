@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { AlbumsAlbumTypeEnum, type Album, type AlbumsAlbumType } from '@/types/music';
+import { type Album } from '@/types/music';
 import { Disc3, Plus, X } from 'lucide-vue-next';
-import { uint8ArrayToBase64 } from 'uint8array-extras';
 import { Button } from '@/components/ui/button';
 import Badge from '@/components/ui/badge/Badge.vue';
 import { ref, toRaw } from 'vue';
@@ -94,10 +93,7 @@ function openTrackDialog(albumHash: string, trackHash: string) {
     if (trackInfo) {
         currentTrack.value = trackInfo.track;
         isTrackEditDialogOpen.value = true;
-        const artists =
-            currentTrack.value?.artists.size === 1 && currentTrack.value?.artists.has("Unknown Artist")
-                ? [""]
-                : Array.from(currentTrack.value?.artists || []);
+        const artists = Array.from(currentTrack.value?.artists || []);
         trackForm.resetForm({
             values: {
                 title: currentTrack.value?.title,
@@ -145,7 +141,8 @@ const onTrackFormSubmit = trackForm.handleSubmit(async (values) => {
         if (trimmed) artistsSet.add(trimmed);
     });
     if (artistsSet.size === 0) artistsSet.add("Unknown Artist");
-    currentTrack.value!.artists = artistsSet;
+    currentTrack.value!.artists = Array.from(artistsSet);
+
 
     currentTrack.value!.album = values.album || "Unknown Album";
     currentTrack.value!.year = values.year || 0;
@@ -186,7 +183,7 @@ function onAlbumEditOpen(albumHash: string) {
                 <div class="flex items-center gap-4 w-full">
                     <div class="w-16 h-16 rounded-lg flex flex-row item-center justify-center shrink-0">
                         <img v-if="album.disc[0].musics?.[0]?.picture?.[0]?.data"
-                            v-bind:src="`data:${album.disc[0].musics?.[0]?.picture?.[0]?.format};base64,${uint8ArrayToBase64(album.disc[0].musics?.[0]?.picture?.[0]?.data)}`"
+                            v-bind:src="`data:${album.disc[0].musics?.[0]?.picture?.[0]?.format};base64,${album.disc[0].musics?.[0]?.picture?.[0]?.data}`"
                             alt="Album Art" class="w-full h-full object-cover rounded-lg" />
                         <div v-else class="w-full h-full bg-gray-700 flex items-center justify-center rounded-lg">
                             <Disc3 class="h-8 w-8 text-gray-400" />
@@ -250,7 +247,7 @@ function onAlbumEditOpen(albumHash: string) {
                                     </h3>
                                     <div class="text-xs text-gray-400">
                                         <span v-for="(artist, index) in track.artists" class="">
-                                            {{ artist }}<span v-if="!(index === track.artists.size - 1)">, </span>
+                                            {{ artist }}<span v-if="!(index === track.artists.length - 1)">, </span>
                                         </span>
                                     </div>
                                 </div>
