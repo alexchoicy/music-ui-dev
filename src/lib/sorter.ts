@@ -29,6 +29,14 @@ export function getNextFreeTrackNo(dics: Disc, preferred: number) {
 }
 
 
+export function checkIfSoundtrack(title: string, filename: string): boolean {
+    const soundtrackIndicators = [
+        "soundtrack", "ost", "サウンドトラック", "オリジナル"
+    ];
+    const lowerTitle = title.toLowerCase();
+    const lowerFilename = filename.toLowerCase();
+    return soundtrackIndicators.some(indicator => lowerTitle.includes(indicator) || lowerFilename.includes(indicator));
+}
 
 export async function albumsReSorter(albums: Album[]) {
     const allMusics: music[] = [];
@@ -50,6 +58,7 @@ export async function albumsReSorter(albums: Album[]) {
                 NoOfDiscs: 0,
                 NoOfTracks: 0,
                 disc: [],
+                albumType: "Album",
             });
         }
         const album = albumMap.get(albumHash)!;
@@ -75,8 +84,16 @@ export async function albumsReSorter(albums: Album[]) {
     const sortedAlbums = Array.from(albumMap.values());
 
     for (const sortedAlbum of sortedAlbums) {
+
+        if (checkIfSoundtrack(sortedAlbum.name, "")) {
+            sortedAlbum.albumType = "Soundtrack";
+        } else if (sortedAlbum.NoOfTracks < 2) {
+            sortedAlbum.albumType = "Single";
+        }
+
         sortedAlbum.disc.sort((a, b) => a.no - b.no);
         sortedAlbum.disc.forEach(disc => disc.musics.sort(albumMusicSorter));
+
     }
     return sortedAlbums;
 }

@@ -1,3 +1,5 @@
+import z from "zod";
+
 export interface music {
     filename: string;
     hash: string;
@@ -40,11 +42,14 @@ export interface Album {
     disc: Disc[];
 }
 
-export type AlbumsAlbumType =
-    | 'Album'
-    | 'Single'
-    | 'Compilation'
-    | 'Soundtrack'
-    | 'Live'
-    | 'Remix'
-    | 'Other';
+export const AlbumsAlbumTypeEnum = z.enum([
+    'Album',
+    'Single',
+    'Compilation',
+    'Soundtrack',
+    'Live',
+    'Remix',
+    'Other'
+])
+
+export type AlbumsAlbumType = z.infer<typeof AlbumsAlbumTypeEnum>;

@@ -1,0 +1,236 @@
+<script setup lang="ts">
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlbumsAlbumTypeEnum, type Album, type AlbumsAlbumType } from "@/types/music";
+import { FormField, FormLabel, FormItem, FormControl, FormDescription } from "@/components/ui/form";
+import { nextTick, ref, watch } from "vue";
+import { useDropZone } from "@vueuse/core";
+import { uint8ArrayToBase64 } from 'uint8array-extras';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useForm } from "vee-validate";
+import { toTypedSchema } from "@vee-validate/zod";
+import z from "zod";
+import { X } from "lucide-vue-next";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectValue } from "@/components/ui/select";
+import SelectTrigger from "../ui/select/SelectTrigger.vue";
+import { getAlbumHash } from "@/lib/sorter";
+
+const props = defineProps({
+    isOpen: {
+        type: Boolean,
+        required: true,
+    },
+    currentAlbum: {
+        type: Object as () => Album,
+        required: true,
+    },
+})
+const newImage = ref<{
+    data: Uint8Array | undefined,
+    format: 'image/jpeg' | 'image/png' | undefined,
+}>({ data: undefined, format: undefined });
+const dropZoneRef = ref<HTMLDivElement>();
+
+const emit = defineEmits(['update:isOpen', 'update:currentAlbum']);
+
+const albumEditSchema = toTypedSchema(z.object({
+    picture: z.object({
+        data: z.instanceof(Uint8Array).optional(),
+        format: z.enum(['image/jpeg', 'image/png']).optional(),
+    }).optional(),
+    name: z.string().optional(),
+    albumArtist: z.string().optional(),
+    albumType: AlbumsAlbumTypeEnum,
+}));
+
+const albumEditForm = useForm({
+    validationSchema: albumEditSchema,
+    initialValues: {
+        name: '',
+        albumArtist: '',
+        albumType: 'Album' as AlbumsAlbumType,
+        picture: undefined,
+    },
+});
+
+async function fileToUint8Array(file: File) {
+    const buffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(buffer);
+    return uint8Array;
+}
+
+useDropZone(dropZoneRef, {
+    onDrop: async (file) => {
+        if (!file) return;
+        const uint8Array = await fileToUint8Array(file[0]);
+        newImage.value = {
+            data: uint8Array,
+            format: file[0].type as 'image/jpeg' | 'image/png',
+        };
+    },
+    dataTypes: ['image/jpeg', 'image/png'],
+    multiple: false,
+})
+
+watch(() => [props.currentAlbum, props.isOpen], async ([currentAlbum, isOpen]) => {
+    if (!isOpen || !currentAlbum) return;
+
+    await nextTick();
+    albumEditForm.resetForm({
+        values: {
+            name: props.currentAlbum.name === "Unknown Album" ? "" : props.currentAlbum.name,
+            albumArtist: props.currentAlbum.albumArtist === "Unknown Album Artist" ? "" : props.currentAlbum.albumArtist,
+            albumType: props.currentAlbum.albumType || 'Album',
+            picture: {
+                data: props.currentAlbum?.disc[0].musics?.[0]?.picture?.[0]?.data as any || undefined,
+                format: props.currentAlbum?.disc[0].musics?.[0]?.picture?.[0]?.format as ("image/jpeg" | "image/png") || undefined,
+            },
+        }
+    })
+}, { immediate: true })
+
+
+function handleAlbumEditDialogOpenChange(open: boolean) {
+    if (!open) {
+        emit('update:currentAlbum', null);
+        albumEditForm.resetForm();
+    }
+    emit('update:isOpen', open);
+}
+
+function removeNewImage() {
+    newImage.value = { data: undefined, format: undefined };
+}
+
+const onAlbumEditSubmit = albumEditForm.handleSubmit(async (values) => {
+    console.log(values);
+    const updateImage = newImage.value.data && newImage.value.format;
+
+    for (const disc of props.currentAlbum.disc) {
+        for (const track of disc.musics) {
+            if (updateImage) {
+                track.picture = [{
+                    data: newImage.value.data as Uint8Array,
+                    format: newImage.value.format as 'image/jpeg' | 'image/png',
+                }]
+            }
+            track.album = values.name || "Unknown Album";
+            track.albumArtist = values.albumArtist || "Unknown Album Artist";
+
+        }
+    }
+
+    props.currentAlbum.name = values.name || "Unknown Album";
+    props.currentAlbum.albumArtist = values.albumArtist || "Unknown Album Artist";
+    props.currentAlbum.albumType = values.albumType;
+    props.currentAlbum.hash = await getAlbumHash(props.currentAlbum.name + props.currentAlbum.albumArtist);
+
+    emit('update:isOpen', false);
+    emit('update:currentAlbum', null);
+    albumEditForm.resetForm();
+})
+
+const albumTypeOptions: { value: AlbumsAlbumType; label: string }[] =
+    AlbumsAlbumTypeEnum.options.map(v => ({ value: v, label: v }))
+
+</script>
+
+<template>
+    <Dialog :open="isOpen" @update:open="handleAlbumEditDialogOpenChange">
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Edit Album</DialogTitle>
+                <DialogDescription>Edit the details of the album. Will apply to all tracks</DialogDescription>
+            </DialogHeader>
+            <form @submit="onAlbumEditSubmit" class="space-y-6 py-4">
+                <FormField v-slot="{ }" name="picture">
+                    <FormItem>
+                        <FormLabel>Album Cover</FormLabel>
+                        <FormControl>
+                            <div class="flex items-center gap-4">
+                                <div class="relative w-24 h-24 rounded-lg border-2 border-dashed" ref="dropZoneRef">
+                                    <div v-if="newImage.data && newImage.format" class="w-full h-full">
+                                        <img :src="`data:${newImage.format};base64,${uint8ArrayToBase64(newImage.data)}`"
+                                            class="w-full h-full object-cover rounded-lg" />
+                                        <button @click="removeNewImage"
+                                            class="absolute cursor-pointer -top-2 -right-2 w-6 h-6 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-colors">
+                                            <X class="h-3 w-3 text-white" />
+                                        </button>
+                                    </div>
+                                    <img v-else-if="currentAlbum?.disc[0].musics[0] && currentAlbum?.disc[0].musics?.[0]?.picture?.[0]"
+                                        v-bind:src="`data:${currentAlbum?.disc[0].musics?.[0]?.picture?.[0]?.format};base64,${uint8ArrayToBase64(currentAlbum?.disc[0].musics?.[0]?.picture?.[0]?.data)}`"
+                                        class="w-full h-full object-cover rounded-lg" />
+                                    <div v-else class="w-full h-full flex items-center justify-center text-gray-500">
+                                        Drop Image Here
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex gap-2">
+                                        <Input type="file" multiple accept="image/jpeg, image/png" class="hidden"
+                                            id="cover-upload" @change="async (e: Event) => {
+                                                const target = e.target as HTMLInputElement;
+                                                if (target.files && target.files.length > 0) {
+                                                    const file = target.files[0];
+                                                    const uint8Array = await fileToUint8Array(file);
+                                                    newImage = {
+                                                        data: uint8Array,
+                                                        format: file.type as 'image/jpeg' | 'image/png',
+                                                    };
+                                                }
+                                            }" />
+                                        <Button asChild type="button">
+                                            <Label for="cover-upload">Upload Image</Label>
+                                        </Button>
+                                    </div>
+                                    <FormDescription>Supported formats: JPEG, PNG</FormDescription>
+                                </div>
+                            </div>
+                        </FormControl>
+                    </FormItem>
+                </FormField>
+                <FormField v-slot="{ field }" name="name">
+                    <FormItem>
+                        <FormLabel>Album Name</FormLabel>
+                        <FormControl>
+                            <Input v-bind="field" placeholder="Album Name" />
+                        </FormControl>
+                    </FormItem>
+                </FormField>
+                <FormField v-slot="{ field }" name="albumArtist">
+                    <FormItem>
+                        <FormLabel>Album Artist</FormLabel>
+                        <FormControl>
+                            <Input v-bind="field" placeholder="Album Artist" />
+                        </FormControl>
+                    </FormItem>
+                </FormField>
+                <div class="grid grid-cols-3">
+                    <FormField v-slot="{ componentField }" name="albumType">
+                        <FormItem>
+                            <FormLabel>Album Type</FormLabel>
+                            <Select v-bind="componentField" :default-value="currentAlbum?.albumType || 'Album'">
+                                <FormControl>
+                                    <SelectTrigger class="w-full">
+                                        <SelectValue placeholder="Select Album Type" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectItem v-for="option in albumTypeOptions" :key="option.value"
+                                            :value="option.value">
+                                            {{ option.label }}
+                                        </SelectItem>
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </FormItem>
+                    </FormField>
+                </div>
+                <Button type="submit" class="w-full">
+                    Save Changes
+                </Button>
+            </form>
+        </DialogContent>
+    </Dialog>
+</template>

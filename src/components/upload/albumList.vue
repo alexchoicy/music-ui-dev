@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Album } from '@/types/music';
+import { AlbumsAlbumTypeEnum, type Album, type AlbumsAlbumType } from '@/types/music';
 import { Disc3, Plus, X } from 'lucide-vue-next';
 import { uint8ArrayToBase64 } from 'uint8array-extras';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import FormLabel from '@/components/ui/form/FormLabel.vue';
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { albumsReSorter } from '@/lib/sorter';
+import AlbumEditDialog from './albumEditDialog.vue';
 
 const props = defineProps({
     albums: {
@@ -33,6 +34,8 @@ const emit = defineEmits(['update:albums']);
 const currentTrack = ref<music | null>(null)
 const isTrackEditDialogOpen = ref(false)
 
+const currentAlbum = ref<Album | null>(null)
+const isAlbumEditDialogOpen = ref(false)
 
 function getSecondToMinuteString(seconds: number) {
     const mins = Math.floor(seconds / 60);
@@ -166,6 +169,14 @@ function onAddArtist() {
     artistsFieldsPush('')
 }
 
+function onAlbumEditOpen(albumHash: string) {
+    const album = props.albums.find(a => a.hash === albumHash);
+    if (!album) return;
+    currentAlbum.value = album;
+    isAlbumEditDialogOpen.value = true;
+}
+
+
 </script>
 
 <template>
@@ -194,6 +205,12 @@ function onAddArtist() {
                             <p class="text-sm text-gray-500">{{ album.NoOfTracks }} tracks</p>
                             <p class="text-sm text-gray-500">{{ album.NoOfDiscs }} discs</p>
                         </div>
+                    </div>
+                    <div>
+                        <Button variant="ghost" class="h-9 w-9 p-0" :disabled="props.blockUpload"
+                            @click="onAlbumEditOpen(album.hash)">
+                            <span class="text-xs">Edit</span>
+                        </Button>
                     </div>
                 </div>
                 <div>
@@ -257,6 +274,9 @@ function onAddArtist() {
                 </div>
             </div>
         </div>
+
+        <AlbumEditDialog v-if="currentAlbum" :isOpen="isAlbumEditDialogOpen" :currentAlbum="currentAlbum"
+            @update:isOpen="isAlbumEditDialogOpen = $event" @update:currentAlbum="currentAlbum = $event" />
 
         <Dialog :open="isTrackEditDialogOpen" @update:open="isTrackEditDialogOpen = $event">
             <DialogScrollContent>

@@ -8,7 +8,7 @@ import { Upload } from "lucide-vue-next";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { getAlbumHash, getNextFreeTrackNo } from "@/lib/sorter";
+import { checkIfSoundtrack, getAlbumHash, getNextFreeTrackNo } from "@/lib/sorter";
 
 const props = defineProps({
     albums: {
@@ -52,14 +52,6 @@ function checkIfInstrumental(title: string, filename: string): boolean {
     return instrumentalIndicators.some(indicator => lowerTitle.includes(indicator) || lowerFilename.includes(indicator));
 }
 
-function checkIfSoundtrack(title: string, filename: string): boolean {
-    const soundtrackIndicators = [
-        "soundtrack", "ost", "サウンドトラック", "オリジナル"
-    ];
-    const lowerTitle = title.toLowerCase();
-    const lowerFilename = filename.toLowerCase();
-    return soundtrackIndicators.some(indicator => lowerTitle.includes(indicator) || lowerFilename.includes(indicator));
-}
 
 function covertToMusicObject(metadata: IAudioMetadata, hash: string, filename: string): music {
     return {
