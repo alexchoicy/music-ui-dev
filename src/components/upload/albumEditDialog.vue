@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
 import z from "zod";
-import { X } from "lucide-vue-next";
+import { Disc3, X } from "lucide-vue-next";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectValue } from "@/components/ui/select";
 import SelectTrigger from "../ui/select/SelectTrigger.vue";
 import { getAlbumHash } from "@/lib/sorter";
@@ -161,8 +161,9 @@ const albumTypeOptions: { value: AlbumsAlbumType; label: string }[] =
                                     <img v-else-if="currentAlbum?.disc[0].musics[0] && currentAlbum?.disc[0].musics?.[0]?.picture?.[0]"
                                         v-bind:src="`data:${currentAlbum?.disc[0].musics?.[0]?.picture?.[0]?.format};base64,${uint8ArrayToBase64(currentAlbum?.disc[0].musics?.[0]?.picture?.[0]?.data)}`"
                                         class="w-full h-full object-cover rounded-lg" />
-                                    <div v-else class="w-full h-full flex items-center justify-center text-gray-500">
-                                        Drop Image Here
+                                    <div v-else
+                                        class="w-full h-full bg-gray-700 flex items-center justify-center rounded-lg">
+                                        <Disc3 class="h-8 w-8 text-gray-400" />
                                     </div>
                                 </div>
                                 <div class="flex-1">
