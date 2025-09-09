@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/sidebar"
 import Navbar from "./navbar.vue";
 import Separator from "../ui/separator/Separator.vue";
+import AudioPlayer from "../audioPlayer.vue";
 </script>
 
 
@@ -25,7 +26,12 @@ import Separator from "../ui/separator/Separator.vue";
         <SidebarInset>
             <Navbar />
             <Separator />
-            <RouterView />
+            <div class="flex flex-col h-full">
+                <div class="flex-1">
+                    <RouterView />
+                </div>
+                <AudioPlayer />
+            </div>
         </SidebarInset>
     </SidebarProvider>
 </template>
