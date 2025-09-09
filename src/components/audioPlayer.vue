@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { Pause, Play, Repeat, Shuffle, SkipBack, SkipForward, Volume, Volume1, Volume2, VolumeOff } from 'lucide-vue-next';
+import { AudioLines, Heart, ListMusic, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward, Volume, Volume1, Volume2, VolumeOff } from 'lucide-vue-next';
 import { onMounted, reactive, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Slider } from '@/components/ui/slider';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 const audioElement = ref<HTMLAudioElement | null>(null);
 const audioSate = reactive({
@@ -54,7 +56,7 @@ function togglePlay() {
                 <Repeat />
             </Button>
         </div>
-        <div class="flex flex-1 items-center gap-4">
+        <div class="flex flex-2 items-center gap-4">
             <div>00:00</div>
             <div class="flex-1">
                 <Progress :model-value="20" class="" />
@@ -79,7 +81,7 @@ function togglePlay() {
                 </HoverCardContent>
             </HoverCard>
         </div>
-        <div className="flex items-center gap-3  md:order-4  hover:bg-accent dark:hover:bg-accent/50">
+        <div className="flex flex-1 items-center gap-3 hover:bg-accent dark:hover:bg-accent/50">
             <div
                 class="w-10 h-10 md:w-12 md:h-12 rounded-lg overflow-hidden bg-gray-700 flex items-center justify-center">
                 <img src="" alt="Album cover" class="w-full h-full object-cover" />
@@ -92,6 +94,50 @@ function togglePlay() {
             <div>
                 <div></div>
             </div>
+        </div>
+        <div>
+            <Button variant="ghost">
+                <Heart />
+            </Button>
+
+            <Popover>
+                <PopoverTrigger as-child>
+                    <Tooltip>
+                        <TooltipTrigger>
+                            <Button variant="ghost">
+                                <ListMusic />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p class="p-1">
+                                Playlist
+                            </p>
+                        </TooltipContent>
+                    </Tooltip>
+                </PopoverTrigger>
+                <PopoverContent :side-offset="25">
+
+                </PopoverContent>
+            </Popover>
+
+            <Popover>
+                <PopoverTrigger as-child>
+                    <Tooltip>
+                        <TooltipTrigger>
+                            <Button variant="ghost">
+                                <AudioLines />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p class="p-1">
+                                Playing in ? Quality
+                            </p>
+                        </TooltipContent>
+                    </Tooltip>
+                </PopoverTrigger>
+                <PopoverContent :side-offset="25">
+                </PopoverContent>
+            </Popover>
         </div>
         <audio controls hidden src=""></audio>
     </div>
